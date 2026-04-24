@@ -6,13 +6,17 @@ import re
 from pathlib import Path
 import argparse
 import subprocess
+from playsound3 import playsound
 
 
-def get_valid_titles(min_length: int = 1080, max_length: int = 1500):
+def get_valid_titles(min_length: int = 15, max_length: int = 25):
     print("Scanning disc for titles...")
 
+    min_length = min_length * 60
+    max_length = max_length * 60
+
     # Run makemkvcon in 'robot' mode (-r) just to get info, not to rip
-    command = ["makemkvcon", "-r", "info", "disc:0"]
+    command = ["makemkvcon", "-r", "info", "disc:0", f"--minlength={min_length}"]
     result = subprocess.run(command, capture_output=True, text=True)
 
     valid_titles = []
@@ -20,8 +24,13 @@ def get_valid_titles(min_length: int = 1080, max_length: int = 1500):
     # MakeMKV robot output formats title lengths like this:
     # TINFO:0,9,0,"1:20:30" (Title 0, attribute 9 is duration, value is 1:20:30)
     # We use regex to hunt for these specific lines
+    pattern = r"Title #(\d+) was added \(\d cell\(s\), (\d+):(\d+):(\d+)\)"
+
+    strin = 'TINFO:7,9,0,"0:05:42"'
+    pattern2 = r'TINFO:(\d+),\d,\d,"(\d):(\d+):(\d+)"'
+
     for line in result.stdout.splitlines():
-        match = re.search(r'TINFO:(\d+),9,0,"(\d+):(\d+):(\d+)"', line)
+        match = re.search(pattern2, line)
         if match:
             title_id = match.group(1)
             hours = int(match.group(2))
@@ -35,7 +44,6 @@ def get_valid_titles(min_length: int = 1080, max_length: int = 1500):
             if min_length <= total_seconds <= max_length:
                 valid_titles.append(title_id)
                 print(f"Found valid Title {title_id} ({total_seconds} seconds)")
-
     return valid_titles
 
 
@@ -51,6 +59,7 @@ def rip_titles(*, titles: list[str], series_name: str, season: str, start_ep: in
         current_ep = start_ep
 
         output = subprocess.DEVNULL  # Do not output anything
+
         for title in titles:
             print(f"\nRipping Title {title}...")
             rip_command = ["makemkvcon", "mkv", "disc:0", title, save_path]
@@ -61,12 +70,13 @@ def rip_titles(*, titles: list[str], series_name: str, season: str, start_ep: in
                 if f" - S{season}E" not in file.name:
                     new_filename = f"{series_name} - S{season}E{current_ep:02d}.mkv"
                     file.rename(save_path / new_filename)
-                    print(f"✅ Successfully renamed episode in: {new_filename}")
+                    print(f"✅ Successfully ripped episode: {new_filename}")
 
                     current_ep += 1
                     break
 
         subprocess.run(["eject"])
+        playsound("./ressources/bell.mp3")
         return current_ep
 
 
@@ -127,11 +137,14 @@ def main():
             input(
                 f"\n✅ Disc {disc} complete! Insert Disc {disc + 1} and press enter..."
             )
-            print("Loading disc...")
+            print("\n\nLoading disc...")
             time.sleep(30)
 
     print(f"Ripping complete for {args.series_name} Season {args.season}!")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nRipping cancelled.")
