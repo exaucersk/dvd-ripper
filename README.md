@@ -5,7 +5,7 @@ Small utility to batch-rip DVD discs (MakeMKV) and name output files as TV show 
 
 Summary
 -------
-This tool automates ripping of DVD discs using MakeMKV's command-line tool `makemkvcon`. It scans the disc for titles whose duration falls inside a configured range (default 15–25 minutes), rips each matching title to a specified destination folder, renames the resulting MKV files to a consistent "Series - SxxExx.mkv" format, and ejects the disc when finished. A notification sound (ressources/bell.mp3) is played after each disc is finished.
+This tool automates ripping of DVD discs using MakeMKV's command-line tool `makemkvcon`. It scans the disc for titles whose duration falls inside a configured range (default 15–25 minutes), rips each matching title to a specified destination folder, renames the resulting MKV files to a consistent "Series - SxxExx.mkv" format, and ejects the disc when finished. A notification sound (src/dvd_ripper/ressources/bell.mp3) is played after each disc is finished.
 
 Requirements
 ------------
@@ -50,23 +50,23 @@ Options
 - -h: Show usage and exit (exits with code 2)
 
 Behavior
-- The script calls `makemkvcon -r info disc:0` to list titles and their durations.
+- The tool calls `makemkvcon -r info disc:0` to list titles and their durations.
 - Titles with durations between 15 and 25 minutes (configurable in code via get_valid_titles) are considered episodes and ripped.
-- Files are saved under `/home/exo/Videos/{Series}/{Season}/` and renamed to the pattern: `{Series} - S{season}E{episode:02d}.mkv`.
-- After each disc is processed the script ejects the disc and plays `ressources/bell.mp3`.
+- Files are saved under `~/Videos/{Series}/{Season}/` and renamed to the pattern: `{Series} - S{season}E{episode:02d}.mkv`.
+- After each disc is processed the tool ejects the disc and plays `src/dvd_ripper/ressources/bell.mp3`.
 
 Notes & Caveats
 ----------------
-- The script assumes a single optical drive with MakeMKV accessible as `makemkvcon`.
-- It currently hardcodes the output base path to `/home/exo/Videos/` — change `save_path` in `rip_titles` if you want a different destination.
+- The tool assumes a single optical drive with MakeMKV accessible as `makemkvcon`.
+- It currently defaults the output base path to `~/Videos/` (inside your home directory) — change `save_path` in `rip_titles` if you want a different destination.
 - The default title-length limits are in minutes (15–25). Adjust `get_valid_titles(min_length, max_length)` if needed.
-- The script suppresses makemkvcon output (redirects stdout/stderr to /dev/null). Remove that behavior in `rip_titles` if you want to see progress logs.
+- The tool suppresses makemkvcon output (redirects stdout/stderr to /dev/null). Remove that behavior in `rip_titles` if you want to see progress logs.
 
 Project files
 -------------
-- main.py — main script containing the logic for scanning and ripping
+- src/dvd_ripper/main.py — main script containing the logic for scanning and ripping
 - pyproject.toml — project metadata and dependency declaration
-- ressources/bell.mp3 — notification sound played after ripping a disc
+- src/dvd_ripper/ressources/bell.mp3 — notification sound played after ripping a disc
 - testing/soundtesting.py — tiny test script to verify the bell sound
 
 License
@@ -75,7 +75,7 @@ This project is licensed under the MIT License — see the LICENSE file for deta
 
 Contributing
 ------------
-Open an issue or edit the repository and submit a PR. Small improvements to make the script safer (configurable output path, better error handling, and unit tests) are recommended.
+Open an issue or edit the repository and submit a PR. Small improvements to make the tool safer (configurable output path, better error handling, and unit tests) are recommended.
 
 TODO: Allow Choosing Optical Drive
 ---------------------------------
