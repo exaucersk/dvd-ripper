@@ -7,7 +7,11 @@ import shutil
 from pathlib import Path
 import argparse
 import subprocess
+import importlib.metadata
 from playsound3 import playsound
+
+
+__version__ = importlib.metadata.version("dvd_ripper")
 
 
 def get_valid_titles(min_length: int = 15, max_length: int = 25):
@@ -111,7 +115,8 @@ def main():
 
     # Set up the argument parser with a custom usage string to match your bash script
     parser = argparse.ArgumentParser(
-        usage="%(prog)s [-S Series Name] [-s Season] [-d Total Disc number] [-e The start episode] [-h help]",
+        prog="dvd_ripper",
+        usage="%(prog)s [-S Series Name] [-s Season] [-d Total Disc number] [-e The start episode] [-h help] [-v version]",
         add_help=False,  # We disable default help to handle -h exactly as requested
     )
 
@@ -128,6 +133,9 @@ def main():
     )
     parser.add_argument(
         "-h", action="store_true", dest="help", help="Show help message and exit"
+    )
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
     # Parse the arguments from the command line
