@@ -16,22 +16,30 @@ Requirements
 Installation
 ------------
 1. Ensure `makemkvcon` is installed and available on your PATH. On most Linux distributions you can install MakeMKV from the official site or packaged repos.
-2. Create a virtual environment and install Python dependencies (optional but recommended):
+2. Ensure you have `uv` installed. You can install it via:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+3. Install the application globally on your machine using `uv`:
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt || python -m pip install playsound3
-```
+   **From this directory:**
+   ```bash
+   uv tool install .
+   ```
+   
+   **Or directly from GitHub (replace yourusername):**
+   ```bash
+   uv tool install git+https://github.com/yourusername/dvd-ripper.git
+   ```
 
-Note: This repository includes a small virtualenv under `.venv` for convenience. You may prefer to create your own.
+This will automatically create an isolated environment and place the `dvd-ripper` command in your PATH.
 
 Usage
 -----
-Run the script from the project root. Example:
+Run the tool from your terminal. Example:
 
 ```bash
-./main.py -S "My Show" -s 1 -d 2 -e 1
+dvd-ripper -S "My Show" -s 1 -d 2 -e 1
 ```
 
 Options
@@ -82,9 +90,9 @@ Provide an option so users can select which optical drive / device to use (inste
 Example usage once implemented:
 
 ```bash
-./main.py -S "My Show" -s 1 -d 2 -e 1 -D disc:1
+dvd-ripper -S "My Show" -s 1 -d 2 -e 1 -D disc:1
 # or
-./main.py -S "My Show" -s 1 -d 2 -D /dev/sr1
+dvd-ripper -S "My Show" -s 1 -d 2 -D /dev/sr1
 ```
 
 This TODO is deliberately small and actionable so contributors can pick individual items.

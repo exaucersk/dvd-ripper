@@ -1,13 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "dvd-ripper"
+maintainers = [{ name = "Exaucer Kimonima", email = "exaucer@kimonima.de" }]
 version = "0.1.0"
-description = "Add your description here"
+description = "DVD Ripping script for TV Shows/Series"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.14"
-license = { file = "LICENSE" }
+license-files = ["LICENSE"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python",
 ]
-dependencies = [
-    "playsound3>=3.3.1",
-]
+dependencies = ["playsound3>=3.3.1"]
+
+[project.scripts]
+dvd-ripper = "dvd_ripper.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dvd_ripper"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/dvd_ripper"]

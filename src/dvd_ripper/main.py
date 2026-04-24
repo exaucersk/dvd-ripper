@@ -24,9 +24,9 @@ def get_valid_titles(min_length: int = 15, max_length: int = 25):
     # MakeMKV robot output formats title lengths like this:
     # TINFO:0,9,0,"1:20:30" (Title 0, attribute 9 is duration, value is 1:20:30)
     # We use regex to hunt for these specific lines
-    pattern = r"Title #(\d+) was added \(\d cell\(s\), (\d+):(\d+):(\d+)\)"
+    # pattern = r"Title #(\d+) was added \(\d cell\(s\), (\d+):(\d+):(\d+)\)"
+    # strin = 'TINFO:7,9,0,"0:05:42"'
 
-    strin = 'TINFO:7,9,0,"0:05:42"'
     pattern2 = r'TINFO:(\d+),\d,\d,"(\d):(\d+):(\d+)"'
 
     for line in result.stdout.splitlines():
@@ -52,7 +52,8 @@ def rip_titles(*, titles: list[str], series_name: str, season: str, start_ep: in
         print("No titles found matching the length requirements.")
         return start_ep
     else:
-        save_path = Path(f"/home/exo/Videos/{series_name}/{season}").absolute()
+        home_path = Path.home()
+        save_path = Path(home_path / f"/Videos/{series_name}/{season}").absolute()
         save_path.mkdir(parents=True, exist_ok=True)
 
         # Start ripping each title
@@ -76,7 +77,9 @@ def rip_titles(*, titles: list[str], series_name: str, season: str, start_ep: in
                     break
 
         subprocess.run(["eject"])
-        playsound("./ressources/bell.mp3")
+        BASE_DIR = Path(__file__).resolve().parent
+        bell_path = BASE_DIR / "ressources" / "bell.mp3"
+        playsound(str(bell_path))
         return current_ep
 
 
