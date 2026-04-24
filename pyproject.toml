@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "dvd-ripper"
 maintainers = [{ name = "Exaucer Kimonima", email = "exaucer@kimonima.de" }]
-version = "0.1.1"
+version = "0.1.2"
 description = "DVD Ripping script for TV Shows/Series"
 readme = "README.md"
 license = "MIT"

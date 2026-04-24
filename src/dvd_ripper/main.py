@@ -3,6 +3,7 @@
 import sys
 import time
 import re
+import shutil
 from pathlib import Path
 import argparse
 import subprocess
@@ -24,10 +25,7 @@ def get_valid_titles(min_length: int = 15, max_length: int = 25):
     # MakeMKV robot output formats title lengths like this:
     # TINFO:0,9,0,"1:20:30" (Title 0, attribute 9 is duration, value is 1:20:30)
     # We use regex to hunt for these specific lines
-    # pattern = r"Title #(\d+) was added \(\d cell\(s\), (\d+):(\d+):(\d+)\)"
-    # strin = 'TINFO:7,9,0,"0:05:42"'
-
-    pattern2 = r'TINFO:(\d+),\d,\d,"(\d):(\d+):(\d+)"'
+    pattern2 = r'TINFO:(\d+),9,0,"(\d+):(\d+):(\d+)"'
 
     for line in result.stdout.splitlines():
         match = re.search(pattern2, line)
@@ -53,7 +51,7 @@ def rip_titles(*, titles: list[str], series_name: str, season: str, start_ep: in
         return start_ep
     else:
         home_path = Path.home()
-        save_path = Path(home_path / f"/Videos/{series_name}/{season}").absolute()
+        save_path = (home_path / "Videos" / series_name / season).absolute()
         save_path.mkdir(parents=True, exist_ok=True)
 
         # Start ripping each title
@@ -63,27 +61,54 @@ def rip_titles(*, titles: list[str], series_name: str, season: str, start_ep: in
 
         for title in titles:
             print(f"\nRipping Title {title}...")
-            rip_command = ["makemkvcon", "mkv", "disc:0", title, save_path]
-            subprocess.run(rip_command, stderr=output, stdout=output)
 
-            # Rename all files in there
-            for file in save_path.glob("*.mkv"):
-                if f" - S{season}E" not in file.name:
-                    new_filename = f"{series_name} - S{season}E{current_ep:02d}.mkv"
-                    file.rename(save_path / new_filename)
-                    print(f"✅ Successfully ripped episode: {new_filename}")
+            existing_files = set(save_path.glob("*.mkv"))
 
-                    current_ep += 1
-                    break
+            rip_command = ["makemkvcon", "mkv", "disc:0", str(title), str(save_path)]
+            result = subprocess.run(rip_command, stderr=output, stdout=output)
+
+            if result.returncode != 0:
+                print(f"❌ Failed to rip Title {title}. The process returned an error.")
+                continue
+
+            current_files = set(save_path.glob("*.mkv"))
+            new_files = current_files - existing_files
+
+            if len(new_files) == 1:
+                new_file = new_files.pop()
+                new_filename = f"{series_name} - S{season}E{current_ep:02d}.mkv"
+                new_file.rename(save_path / new_filename)
+                print(f"✅ Successfully ripped episode: {new_filename}")
+                current_ep += 1
+            elif len(new_files) > 1:
+                print(
+                    f"⚠️ Warning: Multiple new files appeared. Skipping rename for Title {title} to prevent data loss."
+                )
+            else:
+                print(
+                    f"❌ Error: Makemkvcon reported success, but no new MKV file was found for Title {title}."
+                )
 
         subprocess.run(["eject"])
         BASE_DIR = Path(__file__).resolve().parent
         bell_path = BASE_DIR / "ressources" / "bell.mp3"
-        playsound(str(bell_path))
+
+        try:
+            playsound(str(bell_path))
+        except Exception as e:
+            print(f"Notification sound failed: {e}")
+
         return current_ep
 
 
 def main():
+    if not shutil.which("makemkvcon"):
+        print("Error: 'makemkvcon' not found in PATH. Please install MakeMKV.")
+        sys.exit(1)
+    if not shutil.which("eject"):
+        print("Error: 'eject' not found in PATH.")
+        sys.exit(1)
+
     # Set up the argument parser with a custom usage string to match your bash script
     parser = argparse.ArgumentParser(
         usage="%(prog)s [-S Series Name] [-s Season] [-d Total Disc number] [-e The start episode] [-h help]",
@@ -93,8 +118,14 @@ def main():
     # Define the arguments
     parser.add_argument("-S", dest="series_name", help="Series Name")
     parser.add_argument("-s", dest="season", help="Season")
-    parser.add_argument("-d", dest="total_discs", help="Total Discs")
-    parser.add_argument("-e", dest="start_episode", help="Which episode to start at.")
+    parser.add_argument("-d", dest="total_discs", type=int, help="Total Discs")
+    parser.add_argument(
+        "-e",
+        dest="start_episode",
+        type=int,
+        default=1,
+        help="Which episode to start at.",
+    )
     parser.add_argument(
         "-h", action="store_true", dest="help", help="Show help message and exit"
     )
@@ -113,17 +144,14 @@ def main():
         parser.print_usage()
         sys.exit(2)
 
-    total_discs = int(args.total_discs)
-
-    if args.start_episode:
-        episode_counter = int(args.start_episode)
-    else:
-        episode_counter = 1
+    episode_counter = args.start_episode
 
     # Output the result
-    print(f"Starting batch rip for: {args.series_name}. Total Discs: {total_discs}")
+    print(
+        f"Starting batch rip for: {args.series_name}. Total Discs: {args.total_discs}"
+    )
 
-    for disc in range(1, total_discs + 1):
+    for disc in range(1, args.total_discs + 1):
         print(f"{args.series_name} - Season {args.season} - Disc {disc}")
 
         padded_season = str(args.season).zfill(2)
@@ -136,7 +164,7 @@ def main():
             start_ep=episode_counter,
         )
 
-        if disc < total_discs:
+        if disc < args.total_discs:
             input(
                 f"\n✅ Disc {disc} complete! Insert Disc {disc + 1} and press enter..."
             )
