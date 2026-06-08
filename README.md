@@ -66,23 +66,30 @@ Options
 - -m, --movie: Enable movie mode
 - -M, --movie-name: Movie name (required for movie mode)
 - -y, --year: Movie year (optional, for disambiguation)
+- -D, --device: MakeMKV device spec (e.g. `disc:0`, `disc:1`, `/dev/sr0`). Default: `disc:0`
 - -h: Show usage and exit (exits with code 2)
 
 Behavior
 
-- TV Mode: Calls `makemkvcon -r info disc:0` to list titles and their durations. Titles with durations between 15 and 25 minutes are considered episodes and ripped. Files are saved under `~/Videos/{Series}/{Season}/` and renamed to the pattern: `{Series} - S{season}E{episode:02d}.mkv`.
-- Movie Mode: Calls `makemkvcon -r info disc:0` to list titles and their durations. Titles with durations between 60 and 180 minutes are considered movies and ripped. Files are saved under `~/Videos/Movies/{Movie Name}/` and renamed to the pattern: `{Movie Name} ({Year}).mkv` or `{Movie Name}.mkv` if no year is provided.
+- **Disk space check**: Before ripping, the tool verifies at least 9 GB per disc is free at the save path. If insufficient, it exits with an error.
+- **Name sanitization**: Series and movie names are cleaned of invalid characters (slashes, null bytes, leading/trailing dots and spaces) to prevent filesystem issues.
+- **Input validation**: Season, total discs, and year are validated for reasonable ranges before processing.
+- **TV Mode**: Calls `makemkvcon -r info {device}` to list titles and their durations. Titles with durations between 15 and 25 minutes are considered episodes and ripped. Files are saved under `~/Videos/{Series}/{Season}/` and renamed to the pattern: `{Series} - S{season}E{episode:02d}.mkv`.
+- **Movie Mode**: Calls `makemkvcon -r info {device}` to list titles and their durations. Titles with durations between 60 and 180 minutes are considered movies and ripped. Files are saved under `~/Videos/Movies/{Movie Name}/` and renamed to the pattern: `{Movie Name} ({Year}).mkv` or `{Movie Name}.mkv` if no year is provided.
 - After each disc is processed the tool ejects the disc and plays `src/dvd_ripper/ressources/bell.mp3`.
-- TV mode supports multi-disc sets with prompts to swap discs. Movie mode assumes single disc only.
+- TV mode supports multi-disc sets. Between discs, the tool polls for the next disc (waiting up to 2 minutes) instead of using a blind sleep delay.
+- **Overwrite protection**: If a target filename already exists, the tool skips the rename to prevent data loss.
+- **Partial file cleanup**: On a failed rip or cancelled operation (Ctrl+C), any partially written files are automatically removed.
+- Movie mode assumes single disc only.
 
 Notes & Caveats
-----------------
+---------------
 
-- The tool assumes a single optical drive with MakeMKV accessible as `makemkvcon`.
-- It currently defaults the output base path to `~/Videos/` (inside your home directory) — change `save_path` in `rip_titles` if you want a different destination.
+- The tool requires MakeMKV with `makemkvcon` accessible on your PATH.
+- It defaults the output base path to `~/Videos/` (inside your home directory).
 - The default title-length limits are 15–25 minutes for TV episodes and 60–180 minutes for movies. Adjust `get_valid_titles(min_length, max_length, is_movie)` if needed.
-- The tool suppresses makemkvcon output (redirects stdout/stderr to /dev/null). Remove that behavior in `rip_titles` if you want to see progress logs.
 - TV mode and movie mode are mutually exclusive — you cannot use both at the same time.
+- Multiple optical drives can be targeted using the `-D`/`--device` flag (e.g. `disc:1`, `/dev/sr1`).
 
 Project files
 -------------
@@ -105,20 +112,15 @@ Open an issue or edit the repository and submit a PR. Small improvements to make
 TODO: Allow Choosing Optical Drive
 ---------------------------------
 
-Provide an option so users can select which optical drive / device to use (instead of the current hardcoded "disc:0"). Suggested tasks:
+✅ **Done:** The `-D`/`--device` flag is now available and defaults to `disc:0`. The device spec is propagated into `get_valid_titles()` and `rip_titles()`. Remaining tasks:
 
-1. Add a CLI flag (e.g. `-D` / `--drive`) that accepts a MakeMKV device spec (e.g. `disc:0`, `disc:1`) or a system path (`/dev/sr0`). Default should remain `disc:0`.
-2. Propagate the chosen device into `get_valid_titles()` and `rip_titles()` so the commands use the provided device instead of the hardcoded `disc:0`.
-3. Validate the device early by running `makemkvcon -r info <device>` and display a clear error if it fails.
-4. Add an environment variable fallback (e.g. `DVD_RIPPER_DEVICE`) so users can set a default device without changing CLI args.
-5. Update usage examples in this README and add a small integration test or local test script to exercise multiple drives.
+1. Add an environment variable fallback (e.g. `DVD_RIPPER_DEVICE`) so users can set a default device without changing CLI args.
+2. Add a small integration test or local test script to exercise multiple drives.
 
-Example usage once implemented:
+Example usage:
 
 ```bash
 dvd-ripper -S "My Show" -s 1 -d 2 -e 1 -D disc:1
 # or
 dvd-ripper -S "My Show" -s 1 -d 2 -D /dev/sr1
 ```
-
-This TODO is deliberately small and actionable so contributors can pick individual items.
